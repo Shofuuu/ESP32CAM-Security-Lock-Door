@@ -8,6 +8,9 @@
 #include "fr_forward.h"
 #include "fr_flash.h"
 
+// #include <SPIFFS.h>
+// #include <FS.h>
+
 #define ENROLL_CONFIRM_TIMES 5
 #define FACE_ID_SAVE_NUMBER 7
 
@@ -227,7 +230,7 @@ static int run_face_recognition(dl_matrix3du_t *image_matrix, box_array_t *net_b
 
     if (align_face(net_boxes, image_matrix, aligned_face) == ESP_OK){
         if (is_enrolling == 1){
-            int8_t left_sample_face = enroll_face(&id_list, aligned_face); 
+            int8_t left_sample_face = enroll_face_id_to_flash(&id_list, aligned_face); 
 
             if(left_sample_face == (ENROLL_CONFIRM_TIMES - 1)){
                 Serial.printf("Enrolling Face ID: %d\n", id_list.tail);
@@ -240,17 +243,17 @@ static int run_face_recognition(dl_matrix3du_t *image_matrix, box_array_t *net_b
                 Serial.printf("Enrolled Face ID: %d\n", id_list.tail);
             }
 
-            Serial.println("[FR_FLASH] Write face id data");
-            err_code_ret = enroll_face_id_to_flash(&id_list, aligned_face);
-            if(err_code_ret != 0){
-                Serial.println("[FR_FLASH] Error write face id to flash! id: " + String(err_code_ret));
-            }
+            // Serial.println("[FR_FLASH] Write face id data");
+            // err_code_ret = enroll_face_id_to_flash(&id_list, aligned_face);
+            // if(err_code_ret != 0 && err_code_ret < 1){
+            //     Serial.println("[FR_FLASH] Error write face id to flash! id: " + String(err_code_ret));
+            // }else if(err_code_ret >= 1){
+            //     Serial.println("[FR_FLASH] Enrolling new image : " + String(err_code_ret));
+            // }
 
             // if((ENROLL_CONFIRM_TIMES - left_sample_face) > 4)
             //     sdmmc_write_face_data(&id_list);
         } else {
-            Serial.println("[FR_FLASH] Read face id data");
-            err_code_ret = read_face_id_from_flash(&id_list);
             // sdmmc_read_face_data(&id_list);
 
             matched_id = recognize_face(&id_list, aligned_face);
@@ -741,11 +744,12 @@ void camera_set_server(uint8_t state){
     mtmn_config.o_threshold.nms = 0.7;
     mtmn_config.o_threshold.candidate_number = 1;
     
+    Serial.println("[FR_FLASH] Read face id data");
     face_id_init(&id_list, FACE_ID_SAVE_NUMBER, ENROLL_CONFIRM_TIMES);
+    read_face_id_from_flash(&id_list);
     
     Serial.printf("Starting web server on port: '%d'\n", config.server_port);  //TCP Port
     if (httpd_start(&camera_httpd, &config) == ESP_OK) {
-
         httpd_register_uri_handler(camera_httpd, &index_uri);
         httpd_register_uri_handler(camera_httpd, &cmd_uri);
         httpd_register_uri_handler(camera_httpd, &status_uri);
@@ -804,4 +808,11 @@ void camera_init_system(){
 
     sensor_t * s = esp_camera_sensor_get();
     s->set_framesize(s, FRAMESIZE_QVGA);
+
+    // if(!SPIFFS.begin(true)){
+    //     Serial.println("[SPIFFS] Error has occured!");
+    //     return;
+    // }else{
+    //     Serial.println("[SPIFFS] Mounted successfully");
+    // }
 }
