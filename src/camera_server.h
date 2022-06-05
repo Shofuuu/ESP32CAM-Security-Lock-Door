@@ -6,6 +6,7 @@
 #include "fb_gfx.h"
 #include "fd_forward.h"
 #include "fr_forward.h"
+#include "fr_flash.h"
 
 #define ENROLL_CONFIRM_TIMES 5
 #define FACE_ID_SAVE_NUMBER 7
@@ -216,6 +217,7 @@ static void draw_face_boxes(dl_matrix3du_t *image_matrix, box_array_t *boxes, in
 static int run_face_recognition(dl_matrix3du_t *image_matrix, box_array_t *net_boxes){
     dl_matrix3du_t *aligned_face = NULL;
     int matched_id = 0;
+    int8_t err_code_ret = 0;
 
     aligned_face = dl_matrix3du_alloc(1, FACE_WIDTH, FACE_HEIGHT, 3);
     if(!aligned_face){
@@ -238,13 +240,19 @@ static int run_face_recognition(dl_matrix3du_t *image_matrix, box_array_t *net_b
                 Serial.printf("Enrolled Face ID: %d\n", id_list.tail);
             }
 
-            Serial.println("[SDMMC] Write face id data");
+            Serial.println("[FR_FLASH] Write face id data");
+            err_code_ret = enroll_face_id_to_flash(&id_list, aligned_face);
+            if(err_code_ret != 0){
+                Serial.println("[FR_FLASH] Error write face id to flash! id: " + String(err_code_ret));
+            }
 
-            if((ENROLL_CONFIRM_TIMES - left_sample_face) > 4)
-                sdmmc_write_face_data(&id_list);
+            // if((ENROLL_CONFIRM_TIMES - left_sample_face) > 4)
+            //     sdmmc_write_face_data(&id_list);
         } else {
-            Serial.println("[SDMMC] Read face id data");
-            sdmmc_read_face_data(&id_list);
+            Serial.println("[FR_FLASH] Read face id data");
+            err_code_ret = read_face_id_from_flash(&id_list);
+            // sdmmc_read_face_data(&id_list);
+
             matched_id = recognize_face(&id_list, aligned_face);
 
             if (matched_id >= 0) {
@@ -626,7 +634,7 @@ static esp_err_t cmd_handler(httpd_req_t *req){
           }
       }
       else if(!strcmp(variable, "flash")) {  //Control flash
-        ledcWrite(4,val);
+        // ledcWrite(4,val);
         flash_value = val;
       }    
       else {
@@ -689,14 +697,12 @@ void camera_set_server(uint8_t state){
         .user_ctx  = NULL
     };
 
-
     httpd_uri_t status_uri = {
         .uri       = "/status",
         .method    = HTTP_GET,
         .handler   = status_handler,
         .user_ctx  = NULL
     };
-
 
     httpd_uri_t cmd_uri = {
         .uri       = "/control",
@@ -705,7 +711,6 @@ void camera_set_server(uint8_t state){
         .user_ctx  = NULL
     };
 
-
     httpd_uri_t capture_uri = {
         .uri       = "/capture",
         .method    = HTTP_GET,
@@ -713,14 +718,12 @@ void camera_set_server(uint8_t state){
         .user_ctx  = NULL
     };
 
-
    httpd_uri_t stream_uri = {
         .uri       = "/stream",
         .method    = HTTP_GET,
         .handler   = stream_handler,
         .user_ctx  = NULL
     };
-
 
     ra_filter_init(&ra_filter, 20);
     

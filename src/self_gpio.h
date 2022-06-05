@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <esp32-hal-ledc.h>
 
 void gpio_init_system(){
     pinMode(14,OUTPUT);  
