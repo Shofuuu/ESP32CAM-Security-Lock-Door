@@ -6,7 +6,8 @@
 #include "fb_gfx.h"              
 #include "fd_forward.h"         
 #include "fr_forward.h"
-#include "img_converters.h"  
+#include "img_converters.h"
+// #include "fr_flash.h"
 
 void sdmmc_init_system(){
     if(!SD_MMC.begin()){

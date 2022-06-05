@@ -239,8 +239,12 @@ static int run_face_recognition(dl_matrix3du_t *image_matrix, box_array_t *net_b
             }
 
             Serial.println("[SDMMC] Write face id data");
-            sdmmc_write_face_data(&id_list);
+
+            if((ENROLL_CONFIRM_TIMES - left_sample_face) > 4)
+                sdmmc_write_face_data(&id_list);
         } else {
+            Serial.println("[SDMMC] Read face id data");
+            sdmmc_read_face_data(&id_list);
             matched_id = recognize_face(&id_list, aligned_face);
 
             if (matched_id >= 0) {
@@ -753,9 +757,6 @@ void camera_set_server(uint8_t state){
     }else if(state == STOP_CAMERA_SERVER){
         httpd_stop(stream_httpd);
     }
-
-    Serial.println("[SDMMC] Read face id data");
-    sdmmc_read_face_data(&id_list);
 }
 
 void camera_init_system(){

@@ -13,20 +13,23 @@ void wifi_init_system(){
 
     uint8_t flag_connected = 0;
 
+    Serial.print("[WIFI] Connecting ");
     while(WiFi.status() != WL_CONNECTED){
-        flag_connected = 1;
+        if(GET_MS_TICK(1000)){
+            if(flag_connected >= 5){
+                Serial.println("\n[WIFI] WiFi connect timeout!");
+                break;
+            }
 
-        if(GET_MS_TICK(5000)){
-            flag_connected = 0;
-            Serial.println("\n[WIFI] WiFi connect timeout!");
-            break;
+            Serial.print("*");
+            flag_connected++;
         }
-
-        delay(500);
     }
 
-    if(flag_connected){
+    if(flag_connected >= 5){
         Serial.println("\n[WIFI] WiFi connected");
         Serial.println("[WIFI] IP Address : " + WiFi.localIP().toString());
+    }else{
+        Serial.println("[WIFI] WiFi not connected!");
     }
 }
